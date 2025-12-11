@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia: O Mistério das 20 Dicas</title>
+    <meta name="description" content="Um jogo de adivinhação bíblica. Descubra a palavra secreta revelando dicas progressivas.">
+    <style>
+        :root {
+            --primary: #5D4037;
+            --secondary: #8D6E63;
+            --accent: #FFB74D;
+            --bg: #F5F5DC;
+            --card-bg: #FFFFFF;
+            --text: #3E2723;
+            --success: #2E7D32;
+            --error: #C62828;
+            --radius: 8px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Layout Principal */
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 { font-size: 1.2rem; }
+        
+        .score-board {
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Área da Carta */
+        .card-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #E0E0E0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 0.5rem;
+        }
+
+        .category-badge {
+            background-color: var(--accent);
+            color: var(--text);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .clue-counter {
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        /* Lista de Dicas */
+        .clues-list {
+            list-style: none;
+            margin-bottom: 1rem;
+            max-height: 40vh;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+            flex: 1;
+        }
+
+        .clue-item {
+            background-color: #FAFAFA;
+            border-left: 4px solid var(--secondary);
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            animation: fadeIn 0.5s ease;
+            font-size: 0.95rem;
+        }
+        
+        .clue-item.new {
+            border-left-color: var(--accent);
+            background-color: #FFF8E1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Controles */
+        .controls-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid var(--secondary);
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        button:active { opacity: 0.8; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: var(--secondary); color: white; }
+        .btn-reveal { background-color: var(--accent); color: var(--text); width: 100%; margin-bottom: 0.5rem; }
+        .btn-giveup { background-color: #e0e0e0; color: #757575; font-size: 0.8rem; padding: 0.5rem; }
+
+        /* Status Bar (Pontos da rodada) */
+        .round-status {
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Feedback Visual */
+        .feedback {
+            text-align: center;
+            min-height: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .feedback.error { color: var(--error); }
+        .feedback.success { color: var(--success); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius);
+            max-width: 90%;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-content h2 { color: var(--primary); margin-bottom: 1rem; }
+        
+        .result-details {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: var(--radius);
+        }
+
+        .ref-text { font-style: italic; color: #555; display: block; margin-top: 0.5rem; }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .clues-list { max-height: 35vh; }
+            .input-group { flex-direction: column; }
+            .header-content { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>Bíblia: 20 Dicas</h1>
+            <div class="score-board">
+                Total: <span id="total-score">0</span> | Acertos: <span id="wins">0</span>
+            </div>
+            <button class="settings-btn" id="btn-settings" aria-label="Configurações">⚙️</button>
+        </div>
+    </header>
+
+    <main id="game-screen">
+        <div class="round-status">
+            Pontos da Rodada: <span id="current-round-points">100</span>
+        </div>
+        
+        <div class="card-container">
+            <div class="card-header">
+                <span class="category-badge" id="card-category">Categoria</span>
+                <span class="clue-counter" id="clue-count">Dica 0/20</span>
+            </div>
+            
+            <ul class="clues-list" id="clues-list" aria-live="polite">
+                <!-- Dicas aparecerão aqui -->
+                <li style="text-align:center; color: #888; font-style:italic; padding: 1rem;">
+                    O jogo vai começar. Clique em "Revelar Próxima Dica".
+                </li>
+            </ul>
+
+            <div class="feedback" id="feedback-msg"></div>
+
+            <button class="btn-reveal" id="btn-reveal">⬇️ Revelar Próxima Dica (-5 pts)</button>
+
+            <div class="controls-area">
+                <div class="input-group">
+                    <input type="text" id="guess-input" placeholder="Quem ou o que sou eu?" autocomplete="off" enterkeyhint="done">
+                    <button class="btn-primary" id="btn-guess">Enviar Palpite</button>
+                </div>
+                <button class="btn-giveup" id="btn-giveup">Desistir / Ver Resposta</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal de Resultado -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal-content">
+            <h2 id="result-title">Resultado</h2>
+            <div class="result-details">
+                <p id="result-message">Mensagem</p>
+                <h3 id="result-answer" style="margin-top:0.5rem; font-size:1.5rem; color: var(--primary);">Resposta</h3>
+                <span class="ref-text" id="result-ref">Referência</span>
+            </div>
+            <button class="btn-primary" id="btn-next-card">Próxima Carta</button>
+        </div>
+    </div>
+
+    <!-- Modal de Configurações -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <h2>Configurações</h2>
+            
+            <div class="settings-row">
+                <label for="difficulty-select">Dificuldade:</label>
+                <select id="difficulty-select" style="padding: 5px;">
+                    <option value="easy">Fácil (Padrão)</option>
+                    <option value="medium">Médio (Erro -15)</option>
+                    <option value="hard">Difícil (Dicas embaraçadas)</option>
+                </select>
+            </div>
+
+            <div class="settings-row">
+                <label for="sound-toggle">Sons:</label>
+                <input type="checkbox" id="sound-toggle" checked>
+            </div>
+
+            <hr style="margin: 1rem 0; border: 0; border-top: 1px solid #ddd;">
+
+            <button class="btn-secondary" id="btn-reset-data" style="width:100%; margin-bottom:0.5rem; background-color: var(--error);">Resetar Placar</button>
+            <button class="btn-primary" id="btn-close-settings" style="width:100%;">Voltar ao Jogo</button>
+        </div>
+    </div>
+
+    <script>
+        // --- BANCO DE DADOS (36 Cartas) ---
+        const DATABASE = [
+            // PESSOAS
+            { id: 1, cat: "Pessoa", ans: "Moisés", ref: "Êxodo / Deuteronômio", syn: ["Moises"], clues: [
+                "Sou uma figura central do Antigo Testamento.", "Nasci em uma época perigosa para bebês meninos.", "Fui escondido em um cesto.", "Fui adotado por uma família real estrangeira.", "Meu nome soa como 'tirado das águas'.", "Cometi um assassinato para defender um compatriota.", "Fugi para o deserto e me tornei pastor.", "Vi um arbusto pegar fogo sem se consumir.", "Relutei quando Deus me chamou, alegando não saber falar bem.", "Tive um irmão chamado Arão como porta-voz.", "Enfrentei o Faraó do Egito.", "Dez pragas vieram sobre o Egito através da minha mediação.", "Liderei meu povo para fora da escravidão.", "Abri o Mar Vermelho com meu cajado.", "Recebi leis em tábuas de pedra.", "Meu rosto brilhava após falar com Deus.", "Bati na rocha para sair água.", "Não entrei na Terra Prometida.", "Vi a terra de longe, do Monte Nebo.", "Sou conhecido como o grande legislador de Israel."
+            ]},
+            { id: 2, cat: "Pessoa", ans: "Noé", ref: "Gênesis 6-9", syn: ["Noe"], clues: [
+                "Sou mencionado no primeiro livro da Bíblia.", "Vivi em uma geração muito corrompida.", "Achei graça aos olhos do Senhor.", "Fui instruído a fazer uma construção enorme.", "Usei madeira de Gofer.", "Minha obra foi motivo de zombaria.", "Levei minha esposa, três filhos e suas esposas comigo.", "Reuni animais de todas as espécies.", "A construção tinha apenas uma janela e uma porta.", "Choveu por 40 dias e 40 noites.", "Fiquei flutuando sobre as águas do dilúvio.", "Soltei um corvo e depois uma pomba.", "Construí um altar ao sair da construção.", "Deus fez uma aliança comigo.", "O sinal da aliança foi o arco-íris.", "Plantei uma vinha.", "Fiquei embriagado e causei um incidente familiar.", "Vivi 950 anos.", "Sou bisneto de Enoque.", "Sou o construtor da Arca."
+            ]},
+            { id: 3, cat: "Pessoa", ans: "Davi", ref: "1 e 2 Samuel", syn: [], clues: [
+                "Fui o caçula de muitos irmãos.", "Trabalhei como pastor de ovelhas.", "Fui ungido rei ainda jovem.", "Toquei harpa para acalmar um rei.", "Enfrentei um gigante com uma funda.", "Fui o melhor amigo de Jônatas.", "Fugi do Rei Saul por muitos anos.", "Conquistei Jerusalém e a fiz capital.", "Desejei construir o Templo, mas não pude.", "Cometi um grande pecado com Bate-Seba.", "Escrevi muitos Salmos.", "Sou chamado de 'homem segundo o coração de Deus'.", "Tive um filho sábio chamado Salomão.", "Sofri com a rebelião do meu filho Absalão.", "Dancei com alegria diante da Arca da Aliança.", "Organizei os levitas e sacerdotes.", "Reinei por 40 anos.", "Jesus é chamado de 'Filho' em referência a mim.", "Fui guerreiro e poeta.", "Sou o rei mais famoso de Israel."
+            ]},
+            { id: 4, cat: "Pessoa", ans: "Pedro", ref: "Evangelhos / Atos", syn: ["Simao Pedro", "Simão Pedro", "Cefas"], clues: [
+                "Nasci em Betsaida.", "Meu irmão me apresentou ao Messias.", "Meu nome original era Simão.", "Fui pescador no Mar da Galileia.", "Jesus mudou meu nome para significar 'Pedra'.", "Andei sobre as águas, mas afundei quando duvidei.", "Confessei que Jesus é o Cristo.", "Estive no monte da Transfiguração.", "Cortei a orelha de um soldado.", "Neguei Jesus três vezes.", "Corri ao túmulo vazio na manhã da ressurreição.", "Preguei no dia de Pentecostes.", "Fui o líder da igreja primitiva em Jerusalém.", "Tive uma visão sobre alimentos impuros.", "Fui preso e liberto por um anjo.", "Escrevi duas epístolas.", "Fui repreendido por Paulo em Antioquia.", "Jesus me perguntou três vezes: 'Tu me amas?'.", "Morri martirizado, segundo a tradição, de cabeça para baixo.", "Sou um dos doze apóstolos."
+            ]},
+            { id: 5, cat: "Pessoa", ans: "Eva", ref: "Gênesis 2-3", syn: [], clues: [
+                "Não nasci de mulher.", "Fui criada para ser auxiliadora.", "Meu nome significa 'vida' ou 'mãe dos viventes'.", "Vivi em um jardim perfeito.", "Fui formada a partir de uma costela.", "Conversei com uma serpente.", "Vi que o fruto era agradável aos olhos.", "Comi o que era proibido.", "Dei o fruto ao meu marido.", "Fiz roupas de folhas de figueira.", "Me escondi de Deus entre as árvores.", "Recebi uma promessa sobre minha descendência.", "Fui expulsa do paraíso.", "Tive dores de parto.", "Fui mãe de Caim.", "Fui mãe de Abel.", "Fui mãe de Sete.", "Sou a primeira mulher da Bíblia.", "Sou esposa de Adão.", "Sou considerada a mãe de toda a humanidade."
+            ]},
+            { id: 6, cat: "Pessoa", ans: "Paulo", ref: "Atos / Epístolas", syn: ["Saulo", "Saulo de Tarso", "Apostolo Paulo"], clues: [
+                "Nasci em Tarso.", "Era cidadão romano.", "Fui fariseu, aluno de Gamaliel.", "Persegui a igreja cristã com zelo.", "Estive presente no apedrejamento de Estêvão.", "Tive um encontro com Jesus na estrada de Damasco.", "Fiquei cego por três dias.", "Fui batizado por Ananias.", "Tornei-me o apóstolo dos gentios.", "Fiz três grandes viagens missionárias.", "Naufraguei em uma ilha chamada Malta.", "Fui picado por uma cobra e não morri.", "Escrevi grande parte do Novo Testamento.", "Tive um espinho na carne.", "Discuti com filósofos em Atenas.", "Ensinei que a salvação é pela graça, mediante a fé.", "Fui preso em Roma.", "Escrevi cartas a igrejas como as de Corinto e Éfeso.", "Combati o bom combate, acabei a carreira.", "Fui decapitado por ordem de Nero."
+            ]},
+            // LUGARES
+            { id: 7, cat: "Lugar", ans: "Jerusalém", ref: "Toda a Bíblia", syn: ["Jerusalem", "Cidade Santa", "Siao"], clues: [
+                "Sou uma cidade muito antiga.", "Melquisedeque foi rei aqui no passado.", "Davi me conquistou dos jebuseus.", "Tornei-me a capital política e religiosa.", "O Templo foi construído dentro de mim.", "Fui destruída pelos babilônios.", "Neemias reconstruiu meus muros.", "Jesus chorou sobre mim.", "Jesus foi crucificado fora dos meus muros.", "A igreja nasceu aqui no dia de Pentecostes.", "Sou chamada de 'A Cidade Santa'.", "Sou cercada por montes.", "Tenho o Monte das Oliveiras a leste.", "Fui destruída pelos romanos no ano 70 d.C.", "Sou mencionada no final do Apocalipse descendo do céu.", "Sou centro de conflitos até hoje.", "Salomão construiu seu palácio aqui.", "O Rei Ezequias construiu um túnel de água aqui.", "Jesus expulsou vendilhões do meu templo.", "Sou a cidade de Davi."
+            ]},
+            { id: 8, cat: "Lugar", ans: "Éden", ref: "Gênesis 2", syn: ["Eden", "Jardim do Eden", "Paraiso"], clues: [
+                "Fui criado por Deus no princípio.", "Sou descrito como um jardim.", "Quatro rios saíam de mim.", "Dois desses rios chamam-se Tigre e Eufrates.", "Árvores agradáveis e frutíferas cresciam aqui.", "O ouro dessa terra era bom.", "Animais viviam em paz.", "O homem foi colocado aqui para cultivar e guardar.", "Havia a Árvore da Vida no meu meio.", "Havia a Árvore do Conhecimento do Bem e do Mal.", "Deus passeava aqui na viração do dia.", "Fui palco do primeiro casamento.", "Fui palco do primeiro pecado.", "A entrada foi fechada por querubins.", "Uma espada flamejante guardava meu caminho.", "Ninguém mais pôde entrar aqui.", "Represento a inocência perdida.", "Sou sinônimo de Paraíso.", "Onde Adão e Eva viveram.", "O jardim de Deus."
+            ]},
+            { id: 9, cat: "Lugar", ans: "Belém", ref: "Miquéias 5:2 / Lucas 2", syn: ["Belem", "Efrata"], clues: [
+                "Sou uma pequena cidade em Judá.", "Meu nome significa 'Casa do Pão'.", "Jacó enterrou Raquel no caminho para cá.", "Rute colheu espigas nos meus campos.", "Jessé, pai de Davi, morava aqui.", "Davi cuidava de ovelhas nos meus arredores.", "O profeta Miquéias falou sobre mim.", "Disse que de mim sairia o governante de Israel.", "José e Maria viajaram para cá devido a um censo.", "Não havia lugar na estalagem.", "Um rei nasceu aqui numa manjedoura.", "Pastores receberam a notícia nos meus campos.", "Magos do oriente vieram me visitar.", "O rei Herodes mandou matar meus meninos.", "Sou a cidade natal do Rei Davi.", "Sou a cidade natal de Jesus.", "Fico perto de Jerusalém.", "Sou humilde entre os milhares de Judá.", "Fui palco da maior história de Natal.", "Sou a cidade de Davi e de Jesus."
+            ]},
+            { id: 10, cat: "Lugar", ans: "Monte Sinai", ref: "Êxodo 19-34", syn: ["Horebe", "Sinai"], clues: [
+                "Sou uma montanha no deserto.", "Também sou conhecido como Horebe.", "Moisés viu a sarça ardente aqui perto.", "O povo de Israel acampou ao meu pé.", "Houve trovões, relâmpagos e fumaça sobre mim.", "Quem tocasse em mim morreria.", "Deus desceu sobre mim em fogo.", "Moisés subiu ao meu topo.", "Ficou lá 40 dias e 40 noites.", "Lá ele recebeu os Dez Mandamentos.", "O povo fez um bezerro de ouro no meu sopé.", "Elias fugiu para cá quando ameaçado por Jezabel.", "Aqui Deus falou com Elias numa brisa suave.", "Sou o monte da Aliança.", "Represento a Lei Antiga.", "Meu topo ficou coberto por uma nuvem.", "Moisés quebrou as tábuas ao descer de mim.", "Moisés subiu novamente para novas tábuas.", "Meu nome está ligado à Península entre o Egito e Israel.", "Sou o Monte de Deus."
+            ]},
+            { id: 11, cat: "Lugar", ans: "Rio Jordão", ref: "Josué / Evangelhos", syn: ["Jordao", "Rio Jordao"], clues: [
+                "Sou o principal rio da Terra Santa.", "Corro de norte a sul.", "Desaguo no Mar Morto.", "Jacó me atravessou com apenas um cajado.", "As águas pararam para Josué passar.", "O povo de Israel me atravessou para entrar na Terra Prometida.", "Elias e Eliseu dividiram minhas águas.", "Naamã mergulhou 7 vezes em mim.", "Foi curado da lepra nas minhas águas.", "Eliseu fez um machado flutuar em mim.", "João Batista pregava nas minhas margens.", "Muitos foram batizados em mim.", "Jesus foi batizado em mim.", "O Espírito Santo desceu como pomba sobre mim.", "O céu se abriu e ouviu-se a voz do Pai.", "Não sou um rio grande ou limpo comparado a outros.", "Sou fronteira natural de Israel.", "Nasço no Monte Hermom.", "Tenho grande significado espiritual de transição.", "Sou o Rio do Batismo."
+            ]},
+            { id: 12, cat: "Lugar", ans: "Jericó", ref: "Josué 6", syn: ["Jerico"], clues: [
+                "Sou uma das cidades mais antigas do mundo.", "Fico numa região de palmeiras.", "Fico perto do Rio Jordão.", "Dois espiões de Israel me visitaram.", "Uma prostituta chamada Raabe os escondeu.", "Ela amarrou um cordão vermelho na janela.", "Fui a primeira cidade conquistada por Josué.", "Os israelitas marcharam ao meu redor.", "Fizeram isso por sete dias.", "Tocaram trombetas de chifre de carneiro.", "No sétimo dia, o povo gritou.", "Minhas muralhas ruíram.", "Fui destruída e amaldiçoada.", "Quem me reconstruísse perderia os filhos.", "Jesus curou um cego na minha saída.", "Zaqueu, o publicano, morava aqui.", "Subiu numa árvore para ver Jesus.", "Na parábola, o Bom Samaritano viajava vindo de Jerusalém para cá.", "Sou conhecida pelas minhas muralhas caídas.", "A cidade das palmeiras."
+            ]},
+            // OBJETOS
+            { id: 13, cat: "Objeto", ans: "Arca da Aliança", ref: "Êxodo 25", syn: ["Arca da Alianca", "Arca do Testemunho"], clues: [
+                "Fui construída no deserto.", "Feita de madeira de acácia.", "Revestida de ouro por dentro e por fora.", "Tenho argolas e varais para transporte.", "Dois querubins de ouro ficam sobre mim.", "O espaço entre eles é o Propiciatório.", "Guardo as tábuas da Lei.", "Guardo um vaso com maná.", "Guardo a vara de Arão que floresceu.", "Os sacerdotes me carregavam nos ombros.", "Derrubei a estátua de Dagom.", "Matei Uzá quando ele me tocou.", "Davi dançou diante de mim.", "Salomão me colocou no lugar santíssimo.", "A glória de Deus aparecia sobre mim.", "Desapareci após a destruição do Templo.", "Represento a presença de Deus.", "Ninguém podia olhar dentro de mim.", "O sumo sacerdote aspergia sangue sobre mim uma vez por ano.", "Sou o objeto mais sagrado de Israel."
+            ]},
+            { id: 14, cat: "Objeto", ans: "Cruz", ref: "Evangelhos", syn: [], clues: [
+                "Fui um instrumento de tortura romano.", "Feita de madeira.", "Usada para a pena capital.", "Simbolizava maldição e vergonha.", "Um homem de Cirene ajudou a me carregar.", "Fui erguida no lugar da Caveira (Gólgota).", "Pregaram mãos e pés em mim.", "Um título foi colocado no meu topo: INRI.", "Jesus morreu sobre mim.", "Tornei-me o símbolo do Cristianismo.", "Paulo disse que gloriaria apenas em mim.", "Represento o sacrifício.", "Represento a reconciliação com Deus.", "Fui pintada em escudos e bandeiras.", "Jesus disse para cada um tomar a sua.", "O véu do templo rasgou-se quando a obra em mim acabou.", "Sangue foi derramado em mim.", "Sou loucura para os que perecem.", "Sou poder de Deus para os que são salvos.", "O madeiro da crucificação."
+            ]},
+            { id: 15, cat: "Objeto", ans: "Manjedoura", ref: "Lucas 2", syn: ["Cocho"], clues: [
+                "Sou um objeto humilde.", "Geralmente feita de pedra ou madeira.", "Fico em estábulos ou currais.", "Sirvo para alimentar animais.", "Maria me usou por necessidade.", "Não havia berço disponível.", "Fui forrada provavelmente com palha.", "Recebi o Rei dos Reis.", "Os pastores me encontraram.", "Tornei-me símbolo do Natal.", "Represento a humildade de Cristo.", "Deus escolheu o lugar mais simples para nascer.", "Não estava em um palácio.", "Fui o primeiro trono de Jesus na terra.", "O boi e o jumento comem onde eu estou.", "Fico na cidade de Belém.", "Fui mencionada pelos anjos como sinal.", "Segurei o salvador do mundo.", "Um cocho para animais.", "O berço de Jesus."
+            ]},
+            { id: 16, cat: "Objeto", ans: "Vara de Arão", ref: "Números 17", syn: ["Cajado de Arao"], clues: [
+                "Sou um pedaço de madeira.", "Pertencia ao irmão de Moisés.", "Fui usada em milagres no Egito.", "Virei uma serpente diante do Faraó.", "Toquei as águas do Nilo e viraram sangue.", "Houve uma disputa sobre liderança no deserto.", "Doze varas foram colocadas no Tabernáculo.", "Apenas eu sofri uma transformação durante a noite.", "Eu brotei.", "Produzi flores.", "Dei amêndoas maduras.", "Isso provou a escolha de Deus para o sacerdócio.", "Fui guardada como memorial.", "Acabei com as murmurações contra a liderança.", "Fui colocada dentro da Arca da Aliança.", "Represento a autoridade dada por Deus.", "Represento a ressurreição (vida vinda da madeira morta).", "Sou o cajado do primeiro Sumo Sacerdote.", "Sou um sinal contra os rebeldes.", "A vara que floresceu."
+            ]},
+            { id: 17, cat: "Objeto", ans: "Túnica de José", ref: "Gênesis 37", syn: ["Tunica Colorida", "Tunica de Varias Cores"], clues: [
+                "Fui um presente de pai para filho.", "Jacó me deu ao seu filho favorito.", "Era diferente das roupas dos outros irmãos.", "Dizem que eu tinha muitas cores ou mangas longas.", "Causei muita inveja e ciúmes.", "Fui arrancada à força.", "Fui manchada com sangue de cabrito.", "Fui usada para enganar um pai.", "Disseram que uma fera havia devorado meu dono.", "Meu dono foi vendido como escravo.", "Mas ele se tornou governador do Egito.", "Represento o favor paterno.", "Fui o estopim de uma tragédia familiar.", "Fiquei para trás enquanto José ia para o Egito.", "O pai chorou ao me ver.", "Não pude proteger José no poço.", "Sou um símbolo famoso da história de José.", "Fiz os irmãos odiarem o sonhador.", "Uma veste especial.", "A capa colorida de José."
+            ]},
+            { id: 18, cat: "Objeto", ans: "Funda", ref: "1 Samuel 17", syn: ["Atiradeira", "Estilingue"], clues: [
+                "Sou uma arma simples.", "Usada por pastores.", "Feita de couro ou tecido.", "Preciso ser girada com velocidade.", "Lanço projéteis pequenos.", "Não sou espada nem lança.", "Fui usada em um duelo famoso.", "Davi me escolheu em vez da armadura de Saul.", "Pegaram cinco pedras lisas para usar comigo.", "Apenas uma pedra foi necessária.", "Derrubei um gigante filisteu.", "A pedra afundou na testa dele.", "Golias me desprezou.", "Disse: 'Sou eu algum cão para vires a mim com paus?'.", "Represento a confiança em Deus e não na força humana.", "Fui usada por canhotos da tribo de Benjamim com precisão.", "Uma arma de arremesso.", "Davi era perito em me usar.", "Matei Golias.", "A arma de Davi."
+            ]},
+            // LIVROS
+            { id: 19, cat: "Livro", ans: "Gênesis", ref: "Antigo Testamento", syn: ["Genesis"], clues: [
+                "Sou o primeiro.", "Meu nome significa 'Origem' ou 'Princípio'.", "Começo com 'No princípio criou Deus...'.", "Conto a história da Criação.", "Falo sobre Adão e Eva.", "Narro o primeiro homicídio.", "Descrevo o Dilúvio Universal.", "Apresento a Torre de Babel.", "Conto a história dos Patriarcas.", "Abraão, Isaque e Jacó estão em mim.", "Termino com a morte de José no Egito.", "Tenho 50 capítulos.", "Falo da destruição de Sodoma e Gomorra.", "Sou parte do Pentateuco.", "Escrito tradicionalmente por Moisés.", "Explico a origem das línguas.", "Explico a origem de Israel.", "Minha primeira promessa messiânica está no capítulo 3.", "Sou o livro dos começos.", "O primeiro livro da Bíblia."
+            ]},
+            { id: 20, cat: "Livro", ans: "Salmos", ref: "Antigo Testamento", syn: [], clues: [
+                "Sou o livro mais longo da Bíblia.", "Fico bem no meio da Bíblia.", "Sou uma coleção de cânticos e poemas.", "Tenho 150 capítulos.", "Muitos de meus capítulos foram escritos por Davi.", "Outros autores incluem Asafe e Moisés.", "O Senhor é o meu pastor, nada me faltará.", "Os céus declaram a glória de Deus.", "Escondi a tua palavra no meu coração.", "Expressamos alegria, lamento, gratidão e ira.", "Jesus me citou na cruz.", "O capítulo 119 é o maior da Bíblia.", "O capítulo 117 é o menor.", "Falo profeticamente sobre o Messias.", "Sou o hinário de Israel.", "Ensino a orar.", "Digo que a palavra é lâmpada para os pés.", "Começo falando do homem bem-aventurado.", "Termino com 'Tudo o que tem fôlego louve ao Senhor'.", "Livro de louvores."
+            ]},
+            { id: 21, cat: "Livro", ans: "Apocalipse", ref: "Novo Testamento", syn: ["Revelacao"], clues: [
+                "Sou o último livro da Bíblia.", "Meu nome significa 'Revelação'.", "Fui escrito por João.", "Fui escrito na ilha de Patmos.", "Começo com cartas a sete igrejas.", "Sou cheio de simbolismos e visões.", "Falo de um trono no céu.", "Descrevo quatro cavaleiros.", "Falo de selos, trombetas e taças.", "Menciono a marca da besta (666).", "Falo da batalha do Armagedom.", "Descrevo a Nova Jerusalém.", "Ruas de ouro e mar de cristal.", "Não haverá mais choro nem dor.", "Falo da volta de Jesus.", "Jesus é o Leão da tribo de Judá e o Cordeiro.", "Alertei para não acrescentar nem tirar palavras de mim.", "Termino com 'Ora vem, Senhor Jesus'.", "Sou um livro profético.", "O fim das coisas."
+            ]},
+            { id: 22, cat: "Livro", ans: "Atos", ref: "Novo Testamento", syn: ["Atos dos Apostolos"], clues: [
+                "Sou a continuação de um Evangelho.", "Fui escrito por Lucas.", "Narro a história da igreja primitiva.", "Começo com a ascensão de Jesus.", "Descrevo a descida do Espírito Santo.", "Línguas de fogo apareceram.", "Conto a conversão de 3000 pessoas num dia.", "Estêvão, o primeiro mártir, está aqui.", "A conversão de Saulo (Paulo) é central.", "Pedro tem uma visão num terraço.", "A primeira viagem missionária acontece aqui.", "O concílio de Jerusalém é narrado em mim.", "Paulo viaja para Roma.", "Termino com Paulo em prisão domiciliar.", "Mostro a expansão do Evangelho.", "De Jerusalém, Judeia, Samaria até os confins da terra.", "Menciono a cura do coxo na porta Formosa.", "Falo de Ananias e Safira.", "Sou o livro histórico do Novo Testamento.", "Atos dos Apóstolos."
+            ]},
+            { id: 23, cat: "Livro", ans: "Provérbios", ref: "Antigo Testamento", syn: ["Proverbios"], clues: [
+                "Sou um livro de sabedoria.", "Escrito principalmente por Salomão.", "Falo muito sobre o sábio e o tolo.", "O temor do Senhor é o princípio da sabedoria.", "Ensino sobre criar filhos.", "Alertei contra a preguiça (vai ter com a formiga).", "Alertei contra o fiador.", "Falo sobre a mulher virtuosa no final.", "Tenho 31 capítulos, um para cada dia do mês.", "Falo sobre o poder da língua.", "Palavras agradáveis são como favos de mel.", "A resposta branda desvia o furor.", "Falo sobre riquezas e pobreza.", "Sou prático para a vida diária.", "Exalto a disciplina.", "Confia no Senhor de todo o teu coração.", "Não te estribes no teu próprio entendimento.", "Sou poesia hebraica.", "Conselhos de um pai a um filho.", "Livro dos ditados sábios."
+            ]},
+            { id: 24, cat: "Livro", ans: "Êxodo", ref: "Antigo Testamento", syn: ["Exodo"], clues: [
+                "Sou o segundo livro da Bíblia.", "Meu nome significa 'Saída'.", "Começo com a opressão no Egito.", "O nascimento de Moisés está em mim.", "A sarça ardente aparece no capítulo 3.", "Narro as dez pragas.", "A instituição da Páscoa está em mim.", "A travessia do Mar Vermelho é meu ponto alto.", "O cântico de Miriã.", "O maná caindo do céu.", "A entrega dos Dez Mandamentos no Sinai.", "A construção do Bezerro de Ouro.", "A construção do Tabernáculo.", "A Arca da Aliança é descrita em detalhes.", "A glória do Senhor enche o Tabernáculo no final.", "Falo da libertação da escravidão.", "Moisés é o personagem principal.", "Deus se revela como 'EU SOU'.", "Narro a jornada até o Sinai.", "O livro da libertação."
+            ]},
+            // EVENTOS
+            { id: 25, cat: "Evento", ans: "Dilúvio", ref: "Gênesis 6-9", syn: ["O Diluvio", "Grande Enchente"], clues: [
+                "Fui um julgamento divino global.", "Aconteci por causa da maldade humana.", "Fui anunciado com antecedência.", "Envolvi muita água.", "As fontes do grande abismo se romperam.", "As comportas do céu se abriram.", "Choveu por 40 dias e 40 noites.", "Cobri as montanhas mais altas.", "Tudo o que respirava na terra morreu.", "Apenas oito pessoas sobreviveram.", "Um barco gigante foi o refúgio.", "Animais foram preservados em pares.", "As águas prevaleceram por meses.", "Um corvo e uma pomba foram enviados.", "A arca pousou no Monte Ararate.", "Quando terminei, Deus fez uma promessa.", "O arco-íris foi o sinal.", "Nunca mais acontecerei dessa forma.", "Marquei o fim de uma era e o início de outra.", "A grande inundação nos dias de Noé."
+            ]},
+            { id: 26, cat: "Evento", ans: "Última Ceia", ref: "Evangelhos", syn: ["Ultima Ceia", "Santa Ceia"], clues: [
+                "Aconteci numa quinta-feira à noite.", "Foi num cenáculo mobiliado.", "Jesus estava com os doze.", "Foi durante a festa da Páscoa.", "Jesus lavou os pés dos discípulos.", "Houve uma discussão sobre quem era o maior.", "Jesus identificou o traidor.", "Judas saiu mais cedo.", "Pão foi partido.", "Vinho foi servido.", "Jesus disse: 'Isto é o meu corpo'.", "Jesus disse: 'Isto é o meu sangue'.", "Uma nova aliança foi estabelecida.", "Jesus disse para fazerem isso em memória dele.", "Pedro foi avisado que negaria Jesus.", "Depois fomos para o Getsêmani.", "É a base da comunhão nas igrejas hoje.", "Foi a despedida de Jesus antes da cruz.", "O momento da instituição da Eucaristia.", "A ceia do Senhor."
+            ]},
+            { id: 27, cat: "Evento", ans: "Pentecostes", ref: "Atos 2", syn: ["Descida do Espirito Santo"], clues: [
+                "Aconteci 50 dias após a Páscoa.", "Os discípulos estavam reunidos em Jerusalém.", "Houve um som como de um vento impetuoso.", "Línguas repartidas como de fogo apareceram.", "Pousaram sobre cada um deles.", "Todos ficaram cheios do Espírito Santo.", "Começaram a falar em outras línguas.", "Judeus de todas as nações ouviram em seus idiomas.", "Alguns zombaram dizendo que estavam bêbados.", "Pedro se levantou para pregar.", "Ele citou o profeta Joel.", "Ele explicou quem era Jesus.", "As pessoas perguntaram: 'Que faremos?'.", "Pedro disse: 'Arrependei-vos e sede batizados'.", "Quase 3000 almas foram acrescentadas.", "Marquei o nascimento da Igreja.", "O cumprimento da promessa do Pai.", "O derramamento do Espírito.", "A festa das semanas que virou marco cristão.", "O dia do Espírito Santo."
+            ]},
+            { id: 28, cat: "Evento", ans: "Criação", ref: "Gênesis 1-2", syn: ["A Criacao", "A Criacao do Mundo"], clues: [
+                "Aconteci 'No Princípio'.", "A terra era sem forma e vazia.", "O Espírito de Deus pairava sobre as águas.", "Deus disse: 'Haja luz'.", "Fui realizada em seis etapas (dias).", "Separei águas de águas.", "Fiz surgir a porção seca.", "Criei o sol, a lua e as estrelas.", "Enchi os mares de vida.", "Enchi os céus de aves.", "Criei os animais terrestres.", "Criei o homem à imagem de Deus.", "Deus viu que tudo era muito bom.", "No sétimo dia, Deus descansou.", "Não foi por acaso ou explosão.", "Foi pela Palavra de Deus.", "O universo passou a existir.", "Estabeleci o dia e a noite.", "Adão foi o ápice deste evento.", "A origem de tudo."
+            ]},
+            { id: 29, cat: "Evento", ans: "Ressurreição", ref: "Evangelhos", syn: ["Ressurreicao de Jesus", "Pascoa"], clues: [
+                "Aconteci no terceiro dia.", "Foi num domingo de manhã bem cedo.", "Houve um grande terremoto.", "Um anjo removeu a pedra.", "Os guardas ficaram como mortos.", "Mulheres foram ao túmulo.", "Elas levavam especiarias.", "Encontraram o túmulo vazio.", "O anjo disse: 'Ele não está aqui'.", "Pedro e João correram para ver.", "Maria Madalena foi a primeira a ver.", "Jesus apareceu no caminho de Emaús.", "Tomé duvidou que eu tivesse acontecido.", "Garanto a vitória sobre a morte.", "Sem mim, a fé cristã é vã.", "Paulo escreveu muito sobre mim em 1 Coríntios 15.", "Sou a base da esperança cristã.", "Celebra-se na Páscoa.", "Jesus venceu a morte.", "O túmulo vazio."
+            ]},
+            { id: 30, cat: "Evento", ans: "Queda de Jericó", ref: "Josué 6", syn: ["Batalha de Jerico"], clues: [
+                "Foi uma batalha estranha.", "Não usamos aríetes nem escadas.", "Seguimos ordens específicas de Deus.", "Arca da Aliança ia conosco.", "Sete sacerdotes com trombetas.", "Rodeamos a cidade uma vez por dia.", "Fizemos isso por seis dias em silêncio.", "No sétimo dia, rodeamos sete vezes.", "Na sétima volta, as trombetas soaram.", "Josué mandou o povo gritar.", "Foi um grito muito forte.", "As muralhas caíram rente ao chão.", "O povo subiu e tomou a cidade.", "Tudo foi destruído, exceto a casa de Raabe.", "Foi a primeira vitória na Terra Prometida.", "Mostrou que a batalha é do Senhor.", "Ouro e prata foram para o tesouro do Senhor.", "Acã pecou roubando algo deste evento.", "Um milagre militar.", "A conquista da cidade das palmeiras."
+            ]},
+            // CONCEITOS
+            { id: 31, cat: "Conceito", ans: "Fé", ref: "Hebreus 11", syn: ["Fe"], clues: [
+                "Sou a certeza das coisas que se esperam.", "Sou a prova das coisas que não se veem.", "Sem mim é impossível agradar a Deus.", "Pela minha ação, os antigos alcançaram testemunho.", "Abraão é chamado meu pai.", "Noé construiu a arca por meio de mim.", "Pequena como grão de mostarda, posso mover montes.", "Venho pelo ouvir a palavra de Deus.", "Sou um escudo na armadura de Deus.", "Justifico o pecador.", "Não sou um sentimento, sou confiança.", "Andamos por mim, e não por vista.", "Moisés deixou o Egito por meio de mim.", "Raabe não pereceu por causa de mim.", "Sou um dos três que permanecem (com esperança e amor).", "Jesus elogiou a minha grandeza num centurião.", "Salvo pela graça, mediante a mim.", "O justo viverá por mim.", "Crer em Deus.", "Firme fundamento."
+            ]},
+            { id: 32, cat: "Conceito", ans: "Amor", ref: "1 Coríntios 13", syn: ["Caridade"], clues: [
+                "Sou o maior de todos os dons.", "Deus é a minha própria definição.", "Sou sofredor e benigno.", "Não tenho inveja.", "Não me ufano nem me ensoberbeco.", "Não busco os meus interesses.", "Não me irrito, não suspeito mal.", "Tudo sofro, tudo creio, tudo espero.", "Jamais acabo.", "Ainda que eu falasse a língua dos anjos, sem mim nada seria.", "Lançarei fora todo o medo.", "Jesus resumiu a lei em mim.", "Amar a Deus e ao próximo.", "Deus amou o mundo de tal maneira.", "Sou o fruto do Espírito.", "O vínculo da perfeição.", "Um novo mandamento.", "Devo amar até os inimigos.", "Sou a essência do Cristianismo.", "A maior virtude."
+            ]},
+            { id: 33, cat: "Conceito", ans: "Pecado", ref: "Romanos 3:23", syn: [], clues: [
+                "Sou a transgressão da Lei.", "Entrei no mundo por um homem.", "Meu salário é a morte.", "Separo o homem de Deus.", "Todos cometeram e destituídos estão.", "Posso ser por ação ou omissão.", "Habito na carne.", "Sou como uma mancha vermelha.", "Só o sangue de Jesus pode me lavar.", "Caim foi avisado que eu jazia à porta.", "Davi disse que em mim sua mãe o concebeu.", "Acarreto culpa e vergonha.", "Jesus não teve nenhum de mim.", "Ele se fez maldição para levar-me.", "Confessar-me traz perdão.", "Sou errar o alvo.", "A escravidão espiritual.", "A raiz dos problemas do mundo.", "Desobediência a Deus.", "O mal moral."
+            ]},
+            { id: 34, cat: "Conceito", ans: "Graça", ref: "Efésios 2", syn: ["Graca"], clues: [
+                "Sou um favor imerecido.", "Não podes me comprar nem merecer.", "Venho da parte de Deus.", "Salvo o pecador.", "Sou maior que o pecado.", "Onde abundou o pecado, superabundei eu.", "Paulo disse: 'A minha [resposta] te basta'.", "Jesus é cheio de mim e de verdade.", "Caí do céu como presente.", "Não sou pelas obras, para que ninguém se glorie.", "Educo para renegar a impiedade.", "Justificados gratuitamente por mim.", "Sou o oposto de mérito.", "Estou disponível a todos.", "O trono de Deus tem o meu nome.", "A lei veio por Moisés, eu vim por Jesus.", "Sou maravilhosa (Amazing).", "Deus dá aos humildes.", "Presente gratuito de Deus.", "O favor de Deus."
+            ]},
+            { id: 35, cat: "Conceito", ans: "Oração", ref: "Mateus 6", syn: ["Oracao", "Reza"], clues: [
+                "Sou uma conversa com Deus.", "Posso ser feita em secreto, no quarto.", "Não preciso de palavras bonitas, mas sinceras.", "Jesus ensinou um modelo meu (Pai Nosso).", "Devo ser feita sem cessar.", "Posso mover a mão de Deus.", "Elias fez para parar de chover.", "Ana fez para pedir um filho.", "Daniel fazia três vezes ao dia.", "Jesus fazia nos montes, sozinho.", "Tudo o que pedirdes com fé, recebereis.", "O Espírito intercede quando não sabemos como fazer.", "É o fôlego da alma.", "Deve ser feita em nome de Jesus.", "Pode ser de gratidão, petição ou confissão.", "Abre portas.", "Vigiai e fazei-me.", "O clamor do justo pode muito.", "Falar com o Pai.", "Intercessão."
+            ]},
+            { id: 36, cat: "Conceito", ans: "Arrependimento", ref: "Atos 3:19", syn: [], clues: [
+                "Significo mudança de mente.", "Sou necessário para a salvação.", "João Batista pregava sobre mim.", "Jesus começou seu ministério pregando sobre mim.", "Não é apenas remorso ou choro.", "Envolve dar meia-volta (180 graus).", "Leva ao perdão dos pecados.", "Pedro pregou sobre mim no Pentecostes.", "Deus não leva em conta os tempos da ignorância, mas agora manda.", "Produzo alegria no céu quando um pecador o faz.", "Rasgai o coração e não as vestes.", "O filho pródigo passou por isso.", "Reconhecer o erro e abandoná-lo.", "Davi o fez após o pecado com Bate-Seba.", "É um dom de Deus.", "A porta de entrada para o Reino.", "Sem mim, todos perecerão.", "Mudança de direção.", "Voltar-se para Deus.", "Abandonar o pecado."
+            ]}
+        ];
+
+        // --- ESTADO DO JOGO ---
+        const gameState = {
+            currentCard: null,
+            revealedClues: 0,
+            score: 0, // Pontuação Total Acumulada
+            wins: 0,
+            roundPoints: 100, // Pontuação da Rodada Atual
+            history: [], // IDs das últimas cartas para evitar repetição
+            settings: {
+                difficulty: 'easy',
+                sound: true
+            }
+        };
+
+        // --- ÁUDIO (Oscilador Simples) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (!gameState.settings.sound) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'reveal') {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'error') {
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'success') {
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(400, audioCtx.currentTime);
+                oscillator.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        // --- LÓGICA DO JOGO ---
+
+        function initGame() {
+            loadData();
+            updateUI();
+            newCard();
+            
+            // Event Listeners
+            document.getElementById('btn-reveal').addEventListener('click', revealClue);
+            document.getElementById('btn-guess').addEventListener('click', makeGuess);
+            document.getElementById('btn-giveup').addEventListener('click', giveUp);
+            document.getElementById('btn-next-card').addEventListener('click', () => {
+                closeModal();
+                newCard();
+            });
+            document.getElementById('guess-input').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') makeGuess();
+            });
+
+            // Settings Modal
+            document.getElementById('btn-settings').addEventListener('click', () => {
+                document.getElementById('settings-modal').classList.add('active');
+            });
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                saveData();
+                document.getElementById('settings-modal').classList.remove('active');
+            });
+            document.getElementById('difficulty-select').addEventListener('change', (e) => {
+                gameState.settings.difficulty = e.target.value;
+            });
+            document.getElementById('sound-toggle').addEventListener('change', (e) => {
+                gameState.settings.sound = e.target.checked;
+            });
+            document.getElementById('btn-reset-data').addEventListener('click', () => {
+                if(confirm("Tem certeza? Isso apagará seu placar total.")) {
+                    gameState.score = 0;
+                    gameState.wins = 0;
+                    gameState.history = [];
+                    saveData();
+                    updateUI();
+                    document.getElementById('settings-modal').classList.remove('active');
+                    newCard();
+                }
+            });
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('biblia20dicas_save');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                gameState.score = parsed.score || 0;
+                gameState.wins = parsed.wins || 0;
+                gameState.history = parsed.history || [];
+                gameState.settings = parsed.settings || { difficulty: 'easy', sound: true };
+                
+                // Restore settings UI
+                document.getElementById('difficulty-select').value = gameState.settings.difficulty;
+                document.getElementById('sound-toggle').checked = gameState.settings.sound;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('biblia20dicas_save', JSON.stringify({
+                score: gameState.score,
+                wins: gameState.wins,
+                history: gameState.history,
+                settings: gameState.settings
+            }));
+        }
+
+        function getPenalty() {
+            // Penalidade por Dica é sempre 5 para totalizar 100
+            return 5;
+        }
+
+        function getErrorPenalty() {
+            switch(gameState.settings.difficulty) {
+                case 'hard': return 20;
+                case 'medium': return 15;
+                default: return 10;
+            }
+        }
+
+        function normalize(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+
+        function newCard() {
+            // Filtra cartas recentes para evitar repetição imediata
+            let available = DATABASE.filter(c => !gameState.history.includes(c.id));
+            if (available.length === 0) {
+                gameState.history = []; // Reset history if all played
+                available = DATABASE;
+            }
+
+            const randomIndex = Math.floor(Math.random() * available.length);
+            const card = available[randomIndex];
+
+            gameState.currentCard = JSON.parse(JSON.stringify(card)); // Deep copy
+            gameState.revealedClues = 0;
+            gameState.roundPoints = 100;
+            
+            // Lógica de Dificuldade para as Dicas
+            if (gameState.settings.difficulty === 'hard') {
+                // Embaralha as 5 primeiras dicas para ficar confuso
+                const first5 = gameState.currentCard.clues.slice(0, 5);
+                const rest = gameState.currentCard.clues.slice(5);
+                first5.sort(() => Math.random() - 0.5);
+                gameState.currentCard.clues = [...first5, ...rest];
+            }
+
+            // Atualiza Histórico
+            gameState.history.push(card.id);
+            if (gameState.history.length > 10) gameState.history.shift();
+            saveData();
+
+            // Reset UI
+            document.getElementById('clues-list').innerHTML = '';
+            document.getElementById('guess-input').value = '';
+            document.getElementById('feedback-msg').textContent = '';
+            document.getElementById('card-category').textContent = card.cat;
+            document.getElementById('btn-reveal').disabled = false;
+            document.getElementById('btn-guess').disabled = false;
+            
+            updateUI();
+            revealClue(); // Revela a primeira automaticamente
+        }
+
+        function revealClue() {
+            if (gameState.revealedClues >= 20) return;
+
+            const clueIndex = gameState.revealedClues;
+            const clueText = gameState.currentCard.clues[clueIndex];
+            
+            const li = document.createElement('li');
+            li.className = 'clue-item new';
+            li.innerHTML = `<strong>#${clueIndex + 1}:</strong> ${clueText}`;
+            
+            // Remove 'new' class from others
+            document.querySelectorAll('.clue-item').forEach(el => el.classList.remove('new'));
+            
+            const list = document.getElementById('clues-list');
+            list.appendChild(li);
+            list.scrollTop = list.scrollHeight; // Scroll to bottom
+
+            // Atualiza Pontos (exceto a primeira dica que é "grátis" para iniciar o jogo ou já descontada no inicio)
+            // Lógica: Começa com 100. Revelar dica custa 5.
+            // Ao iniciar, revela 1. 
+            // Vamos considerar: Ao clicar REVELAR (da 2ª em diante) desconta. 
+            // A 1ª dica já está lá, então pontos = 100 - (n_dicas_reveladas * 5).
+            
+            gameState.revealedClues++;
+            
+            // Recalcula pontos baseados em quantas dicas estão visíveis
+            // Se 1 dica visivel: 95 pts (custou 5 para ver a primeira).
+            // Se 20 dicas visiveis: 0 pts.
+            gameState.roundPoints = 100 - (gameState.revealedClues * 5);
+            if (gameState.roundPoints < 0) gameState.roundPoints = 0;
+
+            playSound('reveal');
+            updateUI();
+
+            if (gameState.revealedClues >= 20) {
+                document.getElementById('btn-reveal').disabled = true;
+                document.getElementById('btn-reveal').textContent = "Todas as dicas reveladas";
+            }
+        }
+
+        function makeGuess() {
+            const input = document.getElementById('guess-input');
+            const userGuess = normalize(input.value);
+            const feedback = document.getElementById('feedback-msg');
+
+            if (!userGuess) return;
+
+            // Verifica Resposta
+            const correctAns = normalize(gameState.currentCard.ans);
+            const synonyms = gameState.currentCard.syn.map(s => normalize(s));
+            
+            const isCorrect = userGuess === correctAns || synonyms.includes(userGuess);
+
+            if (isCorrect) {
+                endRound(true);
+            } else {
+                playSound('error');
+                const penalty = getErrorPenalty();
+                gameState.roundPoints -= penalty;
+                if (gameState.roundPoints < 0) gameState.roundPoints = 0;
+                
+                feedback.textContent = `Errou! -${penalty} pontos. Tente novamente ou peça outra dica.`;
+                feedback.className = 'feedback error';
+                updateUI();
+                
+                // Shake effect no input
+                input.classList.add('error-shake');
+                setTimeout(() => input.classList.remove('error-shake'), 500);
+            }
+            input.value = '';
+            input.focus();
+        }
+
+        function giveUp() {
+            endRound(false);
+        }
+
+        function endRound(win) {
+            const modal = document.getElementById('result-modal');
+            const title = document.getElementById('result-title');
+            const msg = document.getElementById('result-message');
+            const ans = document.getElementById('result-answer');
+            const ref = document.getElementById('result-ref');
+
+            ans.textContent = gameState.currentCard.ans;
+            ref.textContent = "Referência: " + gameState.currentCard.ref;
+
+            if (win) {
+                playSound('success');
+                gameState.score += gameState.roundPoints;
+                gameState.wins++;
+                title.textContent = "Parabéns! Você acertou!";
+                title.style.color = "var(--success)";
+                msg.innerHTML = `Você ganhou <strong>${gameState.roundPoints}</strong> pontos nesta rodada.`;
+            } else {
+                playSound('error');
+                title.textContent = "Que pena!";
+                title.style.color = "var(--error)";
+                msg.textContent = "A resposta correta era:";
+            }
+
+            saveData();
+            updateUI();
+            
+            modal.classList.add('active');
+            document.getElementById('btn-next-card').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.remove('active');
+        }
+
+        function updateUI() {
+            document.getElementById('total-score').textContent = gameState.score;
+            document.getElementById('wins').textContent = gameState.wins;
+            document.getElementById('current-round-points').textContent = gameState.roundPoints;
+            document.getElementById('clue-count').textContent = `Dica ${gameState.revealedClues}/20`;
+            
+            // Textos dos botões
+            if (gameState.revealedClues < 20) {
+                document.getElementById('btn-reveal').textContent = `⬇️ Revelar Dica ${gameState.revealedClues + 1} (-5 pts)`;
+            }
+        }
+
+        // Iniciar
+        window.addEventListener('DOMContentLoaded', initGame);
+
+    </script>
+</body>
+</html>
